@@ -1,0 +1,27 @@
+First we have created a posts and comments service using express.
+We created an object inside index file to store posts and comments.
+We created a route to get and create all posts and comments.
+Then we created client using react to consume those routes.
+
+Now when we were fetching posts for each post we were making a separate request to comments service to get comments for that post.
+This was not a good idea as it was making multiple requests to comments service.
+Hence we created a gateway service i.e query service to consume all routes from posts and comments service.
+
+Now we are fetching posts and comments for each post in one request.
+But this was not a good idea as it was making multiple requests to query service.
+Hence we created a event bus to consume all events from posts and comments service.
+
+All consumed events by event bus then send back to query service which aggregate all posts and comments.
+Now we are fetching posts and comments for each post in one request.
+
+We want to perform some kind of moderation which will moderate comments before it is added to the post.
+Hence we created a moderation service which will moderate comments before it is added to the post.
+For that first an event is sent to event bus by comments service.( marking comment status as pending)
+Then moderation service consumes that event and moderate the comment.
+If comment is approved then it will send an event to event bus.( marking comment status as approved)
+Now comment is updated by comment service and that is again send back to event bus marking comment status as approved (CommentUpdated).
+Now query service consumes that event and updates the comment in the post.
+
+Suppose query service will go down then we will lost some events till it will come back online.
+Hence we will use event bus to consume all events and store it inside a db.
+When query service will come back online then it will consume all events from db and update the posts and comments.
