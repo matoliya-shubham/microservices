@@ -7,20 +7,57 @@ const app = express();
 app.use(bodyParser.json());
 
 const events = [];
-app.post("/events", (req, res) => {
-  console.log("Received Event by event bus", req.body.type);
-  events.push(req.body);
-  axios.post("http://localhost:4000/events", req.body);
-  axios.post("http://localhost:4001/events", req.body);
-  axios.post("http://localhost:4002/events", req.body);
-  axios.post("http://localhost:4003/events", req.body);
-  res.send("OK");
+
+app.post("/events", async (req, res) => {
+  const event = req.body;
+  console.log("Received Event by event bus", event.type);
+
+  try {
+    events.push(event);
+
+    // Emit event to all services
+    await Promise.allSettled([
+      axios
+        .post("http://posts-clusterip-srv:4000/events", event)
+        .catch((err) =>
+          console.error("Error sending to posts service:", err.message)
+        ),
+      axios
+        .post("http://comments-clusterip-srv:4001/events", event)
+        .catch((err) =>
+          console.error("Error sending to comments service:", err.message)
+        ),
+      axios
+        .post("http://query-clusterip-srv:4002/events", event)
+        .catch((err) =>
+          console.error("Error sending to query service:", err.message)
+        ),
+      axios
+        .post("http://moderation-clusterip-srv:4003/events", event)
+        .catch((err) =>
+          console.error("Error sending to moderation service:", err.message)
+        ),
+    ]);
+
+    res.status(200).send({ status: "Event processed" });
+  } catch (error) {
+    console.error("Error processing event:", error);
+    res.status(500).send({ status: "Error", message: error.message });
+  }
 });
 
 app.get("/events", (req, res) => {
-  res.send(events);
+  try {
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Error retrieving events:", error);
+    res
+      .status(500)
+      .send({ status: "Error", message: "Failed to retrieve events" });
+  }
 });
 
-app.listen(4005, () => {
-  console.log("Event Bus is running on port 4005");
+const PORT = process.env.PORT || 4005;
+app.listen(PORT, () => {
+  console.log(`Event Bus is running on port ${PORT}`);
 });

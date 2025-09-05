@@ -25,3 +25,7 @@ Now query service consumes that event and updates the comment in the post.
 Suppose query service will go down then we will lost some events till it will come back online.
 Hence we will use event bus to consume all events and store it inside a db.
 When query service will come back online then it will consume all events from db and update the posts and comments.
+
+To run service with docker:
+docker build -t shubhammatoliya7/posts .
+docker run shubhammatoliya7/posts

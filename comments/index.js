@@ -13,41 +13,82 @@ app.use(cors());
 const commentsByPostId = {};
 
 app.get("/posts/:id/comments", (req, res) => {
-  res.send(commentsByPostId[req.params.id] || []);
+  try {
+    res.send(commentsByPostId[req.params.id] || []);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res
+      .status(500)
+      .send({ status: "Error", message: "Failed to fetch comments" });
+  }
 });
 
 app.post("/posts/:id/comments", async (req, res) => {
-  const { content } = req.body;
-  const commentId = randomBytes(4).toString("hex");
-  const comments = commentsByPostId[req.params.id] || [];
-  comments.push({ id: commentId, content, status: "pending" });
-  commentsByPostId[req.params.id] = comments;
+  try {
+    const { content } = req.body;
+    if (!content) {
+      return res.status(400).send({
+        status: "Error",
+        message: "Content is required",
+      });
+    }
 
-  await axios.post("http://localhost:4005/events", {
-    type: "CommentCreated",
-    data: { id: commentId, content, postId: req.params.id, status: "pending" },
-  });
+    const commentId = randomBytes(4).toString("hex");
+    const comments = commentsByPostId[req.params.id] || [];
+    const newComment = { id: commentId, content, status: "pending" };
+    comments.push(newComment);
+    commentsByPostId[req.params.id] = comments;
 
-  res.status(201).send(commentsByPostId[req.params.id]);
+    try {
+      await axios.post("http://event-bus-srv:4005/events", {
+        type: "CommentCreated",
+        data: { ...newComment, postId: req.params.id },
+      });
+    } catch (err) {
+      console.error("Failed to emit CommentCreated event:", err.message);
+    }
+
+    res.status(201).send(comments);
+  } catch (error) {
+    console.error("Error creating comment:", error);
+    res
+      .status(500)
+      .send({ status: "Error", message: "Failed to create comment" });
+  }
 });
 
 app.post("/events", async (req, res) => {
-  console.log("Received Event from event bus", req.body.type);
-  const { type, data } = req.body;
-  if (type === "CommentModerated") {
-    const { id, content, postId, status } = data;
-    const comments = commentsByPostId[postId] || [];
-    const comment = comments.find((comment) => comment.id === id);
-    comment.status = status;
+  try {
+    console.log("Received Event from event bus", req.body.type);
+    const { type, data } = req.body;
 
-    await axios.post("http://localhost:4005/events", {
-      type: "CommentUpdated",
-      data: { id, content, postId, status },
-    });
+    if (type === "CommentModerated") {
+      const { id, content, postId, status } = data;
+      const comments = commentsByPostId[postId] || [];
+      const comment = comments.find((c) => c.id === id);
+      if (comment) {
+        comment.status = status;
+
+        try {
+          await axios.post("http://event-bus-srv:4005/events", {
+            type: "CommentUpdated",
+            data: { id, content, postId, status },
+          });
+        } catch (err) {
+          console.error("Failed to emit CommentUpdated event:", err.message);
+        }
+      }
+    }
+    res.send({});
+  } catch (error) {
+    console.error("Error processing event:", error);
+    res
+      .status(500)
+      .send({ status: "Error", message: "Failed to process event" });
   }
-  res.send({});
 });
 
-app.listen(4001, () => {
-  console.log("Comments service is running on port 4001");
+const PORT = process.env.PORT || 4001;
+app.listen(PORT, () => {
+  console.log(`Comments service is running on port ${PORT}`);
 });

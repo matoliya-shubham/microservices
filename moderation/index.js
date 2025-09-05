@@ -11,18 +11,33 @@ app.use(bodyParser.json());
 const posts = {};
 
 app.post("/events", async (req, res) => {
-  console.log("Received Event for Moderation", req.body.type);
-  const { type, data } = req.body;
-  if (type === "CommentCreated") {
-    const status = data.content.includes("orange") ? "rejected" : "approved";
-    await axios.post("http://localhost:4005/events", {
-      type: "CommentModerated",
-      data: { id: data.id, content: data.content, postId: data.postId, status },
-    });
+  try {
+    console.log("Received Event for Moderation", req.body.type);
+    const { type, data } = req.body;
+
+    if (type === "CommentCreated") {
+      const status = data.content.includes("orange") ? "rejected" : "approved";
+
+      try {
+        await axios.post("http://event-bus-srv:4005/events", {
+          type: "CommentModerated",
+          data: { ...data, status },
+        });
+      } catch (err) {
+        console.error("Failed to emit CommentModerated event:", err.message);
+      }
+    }
+
+    res.send({});
+  } catch (error) {
+    console.error("Error processing event:", error);
+    res
+      .status(500)
+      .send({ status: "Error", message: "Failed to process event" });
   }
-  res.send({});
 });
 
-app.listen(4003, () => {
-  console.log("Moderation service is running on port 4003");
+const PORT = process.env.PORT || 4003;
+app.listen(PORT, () => {
+  console.log(`Moderation service is running on port ${PORT}`);
 });
