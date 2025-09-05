@@ -29,3 +29,145 @@ When query service will come back online then it will consume all events from db
 To run service with docker:
 docker build -t shubhammatoliya7/posts .
 docker run shubhammatoliya7/posts
+
+
+DOCKER NOTES:
+Docker is a platform to build, ship, and run applications inside containers.
+A container is a lightweight, portable unit that bundles the app with all its dependencies (libraries, configs, runtime).
+Unlike VMs, containers share the host OS kernel, making them much faster and smaller.
+
+Image:
+- A read-only template with instructions for creating a container.
+- Built from a Dockerfile.
+- Example: nginx:latest is an image.
+
+Container:
+- A running instance of an image.
+- Think of it as the “live” app.
+- Example: running docker run nginx starts a container from the nginx image.
+
+Dockerfile:
+- A text file containing instructions for building an image.
+- Example: Dockerfile for nginx image.
+
+Registry:
+- A storage for images (default: Docker Hub).
+- You push/pull images to/from it.
+
+Docker Hub:
+- A public registry.
+- You can pull images from it.
+- You can push your images to it.
+
+Docker Hub username: shubhammatoliya7
+
+Docker compose:
+- A tool for defining and running multi-container Docker applications.
+- Docker Compose is a tool for defining and running multi-container Docker applications. It simplifies the management of complex applications that consist of multiple interconnected services, such as a web server, a database, and an API. 
+- Example: docker-compose.yml
+
+Docker commands: 
+
+Images:
+docker build -t myapp:1.0 .       # Build image from Dockerfile
+(if no version is mentioned then it will take latest)
+docker images                     # List images
+docker rmi myapp:1.0              # Remove image
+docker pull nginx                 # Download image from Docker Hub
+docker push myuser/myapp:1.0      # Push image to Docker Hub
+
+Containers:
+docker run -d --name myapp myapp:1.0   # Run container in detached mode
+docker ps                              # List running containers
+docker ps -a                           # List all containers (including stopped)
+docker stop myapp                      # Stop container
+docker start myapp                     # Start stopped container
+docker rm myapp                        # Remove container
+docker logs myapp                      # Show container logs
+docker exec -it myapp sh               # Enter container shell
+
+Cleanup:
+docker system prune -a        # Remove unused images/containers/networks
+
+Docker compose:
+docker-compose up -d          # Start all services
+docker-compose down           # Stop and remove services
+
+KUBERNETES NOTES:
+Kubernetes is an open-source container orchestration platform that automates the deployment, scaling, and management of containerized applications.
+
+Core Kubernetes Concepts:
+Pods: A pod is the smallest deployable unit in Kubernetes. It is a collection of containers that share the same network namespace and storage volumes.
+Example: a posts pod running your Node.js container.
+
+Services: A service is a logical grouping of pods and a policy by which to access them. Provides stable network access to pods.
+Types:
+	•	ClusterIP (internal access within cluster).
+	•	NodePort (exposes service on a port of the node).
+	•	LoadBalancer (cloud providers expose service to the internet).
+Example: a posts service that exposes the posts pod to other pods in the cluster.
+
+Deployments: A deployment is a higher-level abstraction that manages the lifecycle of a pod. It ensures that a specified number of replicas of a pod are running at all times.
+Example: a posts deployment that ensures that 3 replicas of the posts pod are running at all times.
+
+ConfigMap & Secret
+	•	Store external configuration (like environment variables).
+	•	Secret = encrypted (for passwords, keys).
+
+Kubectl: CLI tool to interact with Kubernetes cluster.
+Example: kubectl get pods
+kubectl apply -f posts.yaml   # create resources
+kubectl get pods              # list pods
+kubectl logs <pod-name>       # check logs
+
+Kubernetes Cluster: A cluster is a group of nodes (physical or virtual machines) that run the Kubernetes control plane and worker nodes.
+Example: a cluster of 3 nodes running the Kubernetes control plane and worker nodes.
+
+Kubernetes commands:
+
+Cluster: 
+kubectl config get-contexts         # Show all clusters
+kubectl config use-context minikube # Switch to minikube cluster
+kubectl cluster-info                # Show cluster info
+
+Pods:
+kubectl get pods                    # List pods
+kubectl describe pod <pod-name>     # Show detailed info about a pod
+kubectl logs <pod-name>             # Show pod logs
+kubectl exec -it <pod-name> -- bash # Enter pod container
+
+Deployments:
+kubectl create deployment myapp --image=nginx          # Quick deploy
+kubectl get deployments                               # List deployments
+kubectl scale deployment myapp --replicas=3           # Scale pods
+kubectl rollout status deployment/myapp               # Check rollout
+kubectl delete deployment myapp                       # Delete deployment
+
+Services:
+kubectl expose deployment myapp --type=NodePort --port=80   # Expose deployment
+kubectl get services                                        # List services
+
+Apply yaml files:
+kubectl apply -f posts.yaml       # Create/update resources from YAML
+kubectl delete -f posts.yaml      # Delete resources from YAML
+
+Namespaces:
+kubectl get namespaces                     # List namespaces
+kubectl create namespace dev               # Create namespace
+kubectl config set-context --current --namespace=dev   # Set default namespace
+
+
+Quick Workflow Example:
+
+Docker:
+docker build -t myapp:1.0 .
+docker run -d -p 3000:3000 myapp:1.0
+docker ps
+docker logs myapp
+
+Kubernetes:
+kubectl apply -f posts-depl.yaml
+kubectl get pods
+kubectl logs <pod-name>
+kubectl exec -it <pod-name> -- bash
+kubectl delete -f posts-depl.yaml
